@@ -283,21 +283,21 @@ VIEWS.bridge = function(){
   BV.sys ||= FV.sys || 'my-hybrid';
   const pl = buildBridge(BV.sys, BV.opp);
   let tx = null; try{ tx = JSON.parse(localStorage.getItem(TX_KEY)); }catch(e){}
-  const sameOrigin = !!tx, hub = location.pathname.startsWith('/datacoach');
+  const sameOrigin = !!tx, pages = location.hostname.endsWith('github.io'), hub = location.pathname.startsWith('/datacoach') || pages;
   const txNext = tx && tx.matches ? tx.matches.filter(m=>m.status==='upcoming').sort((a,b)=>(a.date||'').localeCompare(b.date||''))[0] : null;
   const txTac = txNext && tx.tactics ? tx.tactics.find(t=>t.id===txNext.tacticId) : null;
   $('#view').innerHTML = `
   <div class="card hero"><h3>🔗 Σύνδεση με το TACTIX (πρόγραμμα προπονητή)</h3>
     <div class="small muted">Το DATA COACH στέλνει στο TACTIX: <b>ρόστερ με βαθμούς 1–20</b> (από τα εκατοστημόρια), <b>καταλληλότητα θέσεων</b> (από το fit), την <b>προτεινόμενη 11άδα</b> στο επιλεγμένο σύστημα και τον <b>επόμενο αγώνα</b> με το report αντιπάλου και προτεινόμενες ασκήσεις.</div>
     <div class="grid g2" style="margin-top:12px">
-      <div class="find ${hub?'str':'info'}"><span class="ic">⚡</span><div><b>Ζωντανή σύνδεση (Coach Hub)</b><span class="small muted">${hub?'Είσαι στο Coach Hub ✔ — τα δεδομένα πάνε απευθείας στο TACTIX.':sameOrigin?'Το TACTIX τρέχει στην ίδια διεύθυνση ✔ — απευθείας αποστολή.':location.hostname==='localhost'?'Άνοιξε και τις δύο εφαρμογές από το Coach Hub (ρύθμιση εκκίνησης «COACH HUB», http://localhost:5265) για απευθείας αποστολή χωρίς αρχεία.':'Στην online έκδοση χρησιμοποίησε τη σύνδεση με αρχείο (δεξιά) — λειτουργεί από κινητό, τάμπλετ και υπολογιστή.'} ${sameOrigin?'<br>Βρέθηκε TACTIX με '+(tx.players||[]).length+' παίκτες ✔':''}</span></div></div>
+      <div class="find ${hub?'str':'info'}"><span class="ic">⚡</span><div><b>Ζωντανή σύνδεση${pages?' (online)':' (Coach Hub)'}</b><span class="small muted">${pages?'Το DATA COACH και το TACTIX είναι online στον ίδιο τομέα ✔ — τα δεδομένα πάνε απευθείας στο TACTIX, από υπολογιστή, κινητό ή τάμπλετ (στον ίδιο browser).':hub?'Είσαι στο Coach Hub ✔ — τα δεδομένα πάνε απευθείας στο TACTIX.':sameOrigin?'Το TACTIX τρέχει στην ίδια διεύθυνση ✔ — απευθείας αποστολή.':location.hostname==='localhost'?'Άνοιξε και τις δύο εφαρμογές από το Coach Hub (ρύθμιση εκκίνησης «COACH HUB», http://localhost:5265) για απευθείας αποστολή χωρίς αρχεία.':'Στην online έκδοση χρησιμοποίησε τη σύνδεση με αρχείο (δεξιά) — λειτουργεί από κινητό, τάμπλετ και υπολογιστή.'} ${sameOrigin?'<br>Βρέθηκε TACTIX με '+(tx.players||[]).length+' παίκτες ✔':''}</span></div></div>
       <div class="find info"><span class="ic">📁</span><div><b>Με αρχείο (λειτουργεί παντού)</b><span class="small muted">«Λήψη αρχείου» εδώ → στο TACTIX: Ρόστερ → «🔗 DATA COACH» → επιλογή αρχείου.</span></div></div></div></div>
   <div class="grid g2" style="margin-top:14px">
     <div class="card"><h3>⚙️ Τι θα σταλεί</h3>
       <label class="f">Σύστημα / τακτική<select id="bS">${opts(SYSTEMS.map(s=>[s.id,`${s.f} · ${s.n} — ${s.c}`]), BV.sys)}</select></label>
       <label class="small" style="display:block;margin-top:10px"><input type="checkbox" id="bO" ${BV.opp?'checked':''}> Επόμενος αγώνας vs <b>${esc(S.settings.nextOpp)}</b> με report & ασκήσεις</label>
       <div class="row" style="margin-top:14px"><button class="btn pri" id="bSend" ${sameOrigin||hub?'':'disabled title="Διαθέσιμο μέσα από το Coach Hub"'}>⚡ Αποστολή στο TACTIX</button><button class="btn" id="bFile">⬇ Λήψη αρχείου για TACTIX</button>
-      ${hub?'<a class="btn" href="/tactix/" target="_blank">🧠 Άνοιγμα TACTIX</a>':''}</div>
+      ${hub?'<a class="btn" href="/tactix/" target="_blank" rel="noopener">🧠 Άνοιγμα TACTIX</a>':''}</div>
       ${pl.opponent?`<hr><div class="small"><b>Report αντιπάλου που θα γραφτεί στον αγώνα:</b><pre class="code" style="white-space:pre-wrap;max-height:220px">${esc(pl.opponent.notes)}</pre></div>`:''}</div>
     <div class="card"><h3>🧩 11άδα (${esc(pl.formation)})</h3><div style="max-width:420px;margin:auto">${xiPitch(bestXI(SYS[BV.sys], myTeamPlayers()),'bP')}</div></div>
     ${txNext?`<div class="card span2"><h3>⬅️ Από το TACTIX</h3><div>Επόμενος αγώνας στο TACTIX: <b>${esc(txNext.opp)}</b> (${esc(txNext.date||'')}) με τακτική <b>${esc(txTac?txTac.name:txNext.tacticId||'—')}</b>.</div>
