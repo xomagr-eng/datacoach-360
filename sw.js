@@ -1,7 +1,7 @@
 /* DATA COACH 360° — Service Worker: λειτουργία offline σε κινητό/τάμπλετ.
    Network-first για τα αρχεία της εφαρμογής (πάντα η νεότερη έκδοση όταν υπάρχει σύνδεση),
    με εφεδρεία την cache όταν δεν υπάρχει. Τα εξωτερικά αιτήματα (StatsBomb, YouTube) δεν αποθηκεύονται. */
-const CACHE = 'datacoach360-v5';
+const CACHE = 'datacoach360-v6';
 const ASSETS = ['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png',
   './js/charts.js','./js/data.js','./js/content.js','./js/app.js','./js/views-performance.js','./js/views-scouting.js',
   './js/views-tools.js','./js/views-systems.js','./js/views-fitcfg.js','./js/views-club.js','./js/views-ux.js'];

@@ -220,7 +220,7 @@ const NAV = [
 const VIEWS = {};
 let CUR = 'home', ARG = null;
 function renderNav(){
-  $('#nav').innerHTML = NAV.map(n => n[0]==='§' ? `<div class="nav-grp">${n[1]}</div>` : `<a data-go="${n[0]}" class="${n[0]===CUR?'on':''}"><span class="i">${n[1]}</span>${n[2]}</a>`).join('');
+  $('#nav').innerHTML = NAV.map(n => n[0]==='§' ? `<div class="nav-grp">${n[1]}</div>` : `<a data-go="${n[0]}" class="${n[0]===CUR?'on':''}" title="${esc(n[2])}"><span class="i">${n[1]}</span><span class="lbl">${n[2]}</span></a>`).join('');
 }
 function go(v, arg){ location.hash = v + (arg!=null ? '/'+encodeURIComponent(arg) : ''); }
 function route(){
@@ -236,6 +236,28 @@ function route(){
   window.scrollTo(0,0);
 }
 
+/* Πλήρης οθόνη (κρύβει τις μπάρες του browser — ιδανικό σε κινητό/τάμπλετ οριζόντια) */
+function toggleFullscreen(){
+  const d = document, el = d.documentElement;
+  if(d.fullscreenElement || d.webkitFullscreenElement) (d.exitFullscreen || d.webkitExitFullscreen).call(d);
+  else { const req = el.requestFullscreen || el.webkitRequestFullscreen; if(req) Promise.resolve(req.call(el)).catch(()=>toast('Η πλήρης οθόνη δεν υποστηρίζεται εδώ')); else toast('Πρόσθεσε την εφαρμογή στην αρχική οθόνη για πλήρη οθόνη'); }
+}
+/* Όταν γυρίζει η συσκευή: ξανασχεδιάζει την τρέχουσα σελίδα για το νέο μέγεθος, κρατώντας τη θέση κύλισης */
+function initOrientation(){
+  const land = () => matchMedia('(orientation: landscape)').matches;
+  let lastN = narrow(), lastL = land(), t;
+  const redraw = () => {
+    const n = narrow(), l = land(); if(n===lastN && l===lastL) return;
+    lastN = n; lastL = l; if($('#modalBg.open')) return;
+    const ratio = scrollY / Math.max(1, document.documentElement.scrollHeight - innerHeight);
+    try{ VIEWS[CUR](ARG); }catch(e){ console.error(e); }
+    requestAnimationFrame(()=>scrollTo(0, ratio * (document.documentElement.scrollHeight - innerHeight)));
+  };
+  addEventListener('resize', ()=>{ clearTimeout(t); t = setTimeout(redraw, 220); });
+  addEventListener('orientationchange', ()=>setTimeout(redraw, 300));
+  const fs = $('#fsBtn'); if(fs && !(document.fullscreenEnabled || document.webkitFullscreenEnabled) ) fs.style.display='none';
+  document.addEventListener('fullscreenchange', ()=>{ if(fs) fs.textContent = document.fullscreenElement ? '🗗' : '⛶'; });
+}
 function toggleMenu(force){
   const open = force===undefined ? !$('#side').classList.contains('open') : force;
   $('#side').classList.toggle('open', open); $('#backdrop').classList.toggle('show', open);
@@ -499,6 +521,7 @@ function boot(){
   if(!teamList().includes(S.settings.myTeam)) S.settings.myTeam = teamList()[0];
   if(!DB.teamByName[S.settings.nextOpp]) S.settings.nextOpp = DB.teams.find(t=>t.name!==S.settings.myTeam).name;
   initGlobal();
+  initOrientation();
   route();
   if(!S.onboarded) setTimeout(showOnboarding, 350);
 }

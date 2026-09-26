@@ -99,9 +99,12 @@ function openSearch(){
   };
   srDraw();
 }
+/* ελληνικά ↔ λατινικά: «κοστα» βρίσκει «Costa», «πεπ» βρίσκει «Pep» */
+const GR2LAT = [["ντ","nd"],["μπ","mb"],["γκ","gk"],["γγ","ng"],["ου","ou"],["θ","th"],["χ","ch"],["ψ","ps"],["α","a"],["β","v"],["γ","g"],["δ","d"],["ε","e"],["ζ","z"],["η","i"],["ι","i"],["κ","k"],["λ","l"],["μ","m"],["ν","n"],["ξ","x"],["ο","o"],["π","p"],["ρ","r"],["σ","s"],["ς","s"],["τ","t"],["υ","y"],["φ","f"],["ω","o"]];
+const latin = s => { let t = s; for (const [g, l] of GR2LAT) t = t.split(g).join(l); return t.replace(/y/g,"i").replace(/w/g,"o").replace(/(.)\1/g,"$1").replace(/c(?!h)/g,"k").replace(/mb/g,"b").replace(/nd/g,"d"); };
 function srSearch(q){
-  const n = normName(q), out = [];
-  const hit = s => normName(s).includes(n);
+  const n = normName(q), nl = latin(n), out = [];
+  const hit = s => { const t = normName(s); return t.includes(n) || latin(t).includes(nl); };
   const pages = NAV.filter(x=>x[0]!=='§').map(x=>({ t:'page', ic:x[1], l:x[2], sub:'Σελίδα', go:x[0] }));
   const actions = [
     { t:'page', ic:'🕵️', l:'Report αντιπάλου: '+S.settings.nextOpp, sub:'Ενέργεια', go:'opp' },
