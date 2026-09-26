@@ -288,7 +288,7 @@ VIEWS.home = function(){
   const risk = sq.filter(p=>p.pos!=='GK').map(p=>({p,a:acwr(p)})).filter(x=>x.a.r>1.5);
   const over = sq.filter(p=>p._vfm!=null && p._vfm<.65).sort((a,b)=>a._vfm-b._vfm).slice(0,3);
   const value = sq.filter(p=>p._vfm!=null && p._vfm>1.35 && qualified(p)).sort((a,b)=>b._vfm-a._vfm).slice(0,3);
-  let html = `<div class="card hero"><div class="row" style="align-items:flex-start">
+  let html = backupBanner() + `<div class="card hero"><div class="row" style="align-items:flex-start">
     <div style="flex:1;min-width:260px"><h2 style="margin:0 0 6px">Ο προπονητής-αναλυτής που θέλουν οι ομάδες</h2>
     <div class="muted">Data analytics, διαχείριση μπάτζετ και στρατηγική σε ένα εργαλείο. Μετατρέπει τα raw δεδομένα σε αποφάσεις: αναφορές αντιπάλου, scouting με αριθμούς, value-for-money και πορτφόλιο που ανοίγει πόρτες.</div></div>
     <div class="row"><button class="btn pri" data-go="opp">🕵️ Report επόμενου αντιπάλου</button><button class="btn" data-go="data">📥 Φόρτωσε δικά σου δεδομένα</button></div></div>
@@ -447,7 +447,7 @@ VIEWS.data = function(){
   </div>`;
 
   on('#sSave','click',()=>{ st.myTeam=$('#sMy').value; st.nextOpp=$('#sOpp').value; st.minMin=Math.max(0,+$('#sMin').value||0); st.author=$('#sAuth').value.trim(); save(); rebuild(); toast('Αποθηκεύτηκε ✔'); route(); });
-  on('#bExp','click',()=>download('datacoach360_backup.json', JSON.stringify(S), 'application/json'));
+  on('#bExp','click',doBackup);
   on('#bImp','change',e=>{ const f=e.target.files[0]; if(!f) return; f.text().then(t=>{ try{ const o=JSON.parse(t); Object.keys(S).forEach(k=>delete S[k]); Object.assign(S, JSON.parse(JSON.stringify(DEF_STATE)), o); save(); rebuild(); toast('Επαναφέρθηκε ✔'); route(); }catch(err){ toast('Μη έγκυρο αρχείο'); } }); });
   on('#bCsv','click',()=>exportPlayersCSV(PL,'players_all.csv'));
   on('#bTpl','click',()=>download('datacoach360_template.csv', '﻿Player;Squad;Pos;Age;Min;Gls;Ast;npxG;xAG;Sh;SoT;KP;PrgP;PrgC;CrsPA;Tkl;Int;Recov;Clr;AerW;AerT;dDuelW;dDuelT;Succ;DrbA;Att Pen;LineBreak;Press;Cmp;Att;F3Cmp;F3Att;Value;Wage;Contract\nΓιώργος Παπαδόπουλος;Ομάδα Χ;CM;24;1850;3;5;2,1;4,3;25;9;38;110;45;6;40;22;120;15;18;35;60;110;22;40;35;60;400;1500;1750;300;420;450;60;2028\n','text/csv'));
@@ -485,10 +485,10 @@ VIEWS.data = function(){
 };
 function exportPlayersCSV(list, name){
   const cols = ['name','team','league','pos','age','min','goals','ast','npxg','xa','shots','sot','kp','progP','progC','crosses','tkl','int','recov','clear','aerW','aerT','dduelW','dduelT','drbS','drbA','touchBox','lineBreak','pressures','passCmp','passAtt','f3Cmp','f3Att','value','wage','contract'];
-  const extra = ['score','exp_wage','vfm','exp_value'];
+  const extra = ['score','exp_wage','vfm','exp_value','scout_status','scout_rating','scout_notes'];
   const lines = [cols.concat(extra).join(';')];
   for(const p of list) lines.push(cols.map(c=>{ const v=p[c]; return typeof v==='number' ? String(v).replace('.',',') : `"${String(v??'').replace(/"/g,'""')}"`; })
-    .concat([p._score, p._expWage, p._vfm, p._expVal].map(v=>v==null?'':(+v).toFixed(2).replace('.',','))).join(';'));
+    .concat([p._score, p._expWage, p._vfm, p._expVal].map(v=>v==null?'':(+v).toFixed(2).replace('.',','))).concat(scoutCsv(p)).join(';'));
   download(name, '﻿'+lines.join('\n'), 'text/csv');
 }
 
@@ -500,4 +500,5 @@ function boot(){
   if(!DB.teamByName[S.settings.nextOpp]) S.settings.nextOpp = DB.teams.find(t=>t.name!==S.settings.myTeam).name;
   initGlobal();
   route();
+  if(!S.onboarded) setTimeout(showOnboarding, 350);
 }

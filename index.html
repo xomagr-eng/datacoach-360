@@ -128,6 +128,37 @@ pre.code{background:#090b10;border:1px solid var(--line);border-radius:10px;padd
 .drop{border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--muted);cursor:pointer}
 .drop.over{border-color:var(--red);background:var(--redbg)}
 .report-head{display:none}
+
+/* ---- Modal · υποδοχή · αναζήτηση · σημειώσεις ---- */
+.icon-btn{padding:6px 10px;font-size:15px;line-height:1}
+#modalBg{position:fixed;inset:0;background:rgba(3,4,8,.72);backdrop-filter:blur(4px);z-index:60;display:none;align-items:flex-start;justify-content:center;padding:6vh 14px 14px;overflow:auto}
+#modalBg.open{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);width:100%;max-width:560px;padding:20px;animation:mIn .18s ease-out}
+.modal.wide{max-width:720px}
+@keyframes mIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+.ob h2{margin:0 0 4px;font-size:21px}.ob h3{margin:16px 0 6px}
+.ob-hero{display:flex;gap:14px;align-items:center;padding-bottom:6px}
+.ob-hero .logo{width:54px;height:54px;flex:0 0 54px;border-radius:14px;background:var(--red);display:grid;place-items:center;font-weight:800;font-size:20px}
+.ob-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.ob-opt{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer}
+.ob-opt .i{font-size:24px}.ob-opt:hover{border-color:#3a4458}.ob-opt.on{border-color:var(--red);background:var(--redbg);box-shadow:inset 0 0 0 1px var(--red)}
+.ob-foot{display:flex;gap:8px;align-items:center;margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.ob-dots{display:flex;gap:6px}.ob-dots i{width:8px;height:8px;border-radius:50%;background:#3a4458}.ob-dots i.on{background:var(--red);width:22px;border-radius:6px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+kbd{background:#0f131b;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;font:11px Consolas,monospace;color:var(--text)}
+.srch-in{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:6px 12px;background:#0f131b}
+.srch-in input{flex:1;border:0!important;background:transparent!important;font-size:16px;padding:8px 0}
+.srch-in input:focus{outline:none}
+.srch-res{margin-top:10px;max-height:58vh;overflow:auto}
+.srch-it{display:flex;gap:12px;align-items:center;padding:9px 10px;border-radius:10px;cursor:pointer}
+.srch-it .ic{font-size:20px;width:26px;text-align:center}.srch-it>div{flex:1;min-width:0}
+.srch-it.on,.srch-it:hover{background:var(--redbg)}
+.srch-hint{margin-top:8px;text-align:right}
+.stars{display:flex;align-items:center;gap:2px}
+.stars button{background:none;border:0;font-size:24px;color:#3a4458;cursor:pointer;padding:0 2px;line-height:1}
+.stars button.on{color:var(--gold)}
+@media (max-width:900px){ .hide-sm{display:none} #modalBg{padding:10px} .ob-grid{grid-template-columns:1fr 1fr} }
+@media (max-width:420px){ .ob-grid{grid-template-columns:1fr} }
 #backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:35}
 #bottomNav{display:none;position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(14,17,24,.97);border-top:1px solid var(--line);backdrop-filter:blur(8px);padding:6px 4px calc(6px + env(safe-area-inset-bottom));justify-content:space-around}
 #bottomNav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--muted);text-decoration:none;padding:4px 0;border-radius:10px;cursor:pointer}
@@ -196,7 +227,7 @@ pre.code{background:#090b10;border:1px solid var(--line);border-radius:10px;padd
 @media print{
   :root{--bg:#fff;--panel:#fff;--panel2:#f4f5f7;--line:#d9dce3;--text:#111;--muted:#555;--pitch:#f6f7f9;--pitch-line:#9aa1ae;--grid:#e5e7eb}
   body{background:#fff;color:#111;font-size:11.5px}
-  .side,.top,.noprint,#tip,#toast,#bottomNav,#backdrop{display:none!important}
+  .side,.top,.noprint,#tip,#toast,#bottomNav,#backdrop,#modalBg{display:none!important}
   .app{display:block}
   #view{padding:0;max-width:none}
   .card{break-inside:avoid;border-color:#ccc}
@@ -220,6 +251,8 @@ pre.code{background:#090b10;border:1px solid var(--line);border-radius:10px;padd
       <h1 id="title">Αρχική</h1>
       <span class="pill" id="srcPill"></span>
       <span class="pill red" id="teamPill"></span>
+      <button class="btn icon-btn" onclick="openSearch()" aria-label="Αναζήτηση" data-tip="Αναζήτηση (/ ή Ctrl+K)">🔎</button>
+      <button class="btn icon-btn hide-sm" onclick="showOnboarding()" aria-label="Οδηγός" data-tip="Οδηγός υποδοχής">❓</button>
     </div>
     <div id="view"></div>
   </main>
@@ -244,6 +277,7 @@ pre.code{background:#090b10;border:1px solid var(--line);border-radius:10px;padd
 <script src="js/views-systems.js"></script>
 <script src="js/views-fitcfg.js"></script>
 <script src="js/views-club.js"></script>
+<script src="js/views-ux.js"></script>
 <script>boot();</script>
 </body>
 </html>

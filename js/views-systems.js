@@ -267,7 +267,7 @@ function buildBridge(sysId, withOpp){
     club:{ name:S.settings.myTeam }, tacticId:sys.id, formation:sys.f,
     players: sq.map(p=>{ const br = bestRoles(p,2);
       return { name:p.name, pos:txPos(p), age:p.age, attrs:txAttrs(p), minutes:p.min||0, goals:p.goals||0, assists:p.ast||0, suitability:txSuit(p),
-        notes:`DATA COACH: score ${Math.round(p._score)}/100 · καλύτεροι ρόλοι: ${br.map(b=>`${ARCH[b.a].l} ${Math.round(b.f)}%`).join(', ')} · μισθός ${p.wage||'–'}k€ · λήξη ${p.contract||'–'}` }; }),
+        notes:`DATA COACH: score ${Math.round(p._score)}/100 · καλύτεροι ρόλοι: ${br.map(b=>`${ARCH[b.a].l} ${Math.round(b.f)}%`).join(', ')} · μισθός ${p.wage||'–'}k€ · λήξη ${p.contract||'–'}${scoutNoteText(p)}` }; }),
     xi: xi.slots.map(s=>({ i:s.i, r:s.r, role:ARCH[s.a].tx, roleName:ARCH[s.a].l, name:s.p?s.p.name:null, fit:Math.round(s.fit) })) };
   if(sys.custom) payload.customTactic = { id:sys.id, name:sys.n, coach:sys.c, formation:sys.f, tags:sys.t, positions: sysSlots(sys).map(sl=>({ r:sl.r, x:sl.x, y:sl.y, roleCode:ARCH[sl.a].tx, roleName:ARCH[sl.a].l })) };
   if(withOpp && opp){

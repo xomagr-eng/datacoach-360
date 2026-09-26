@@ -6,14 +6,14 @@ function leagueOpts(cur){ return `<option value="">Όλες</option>` + opts(lea
 const GEN_COLS = ['npxgxa','xa','kp','progP','progC','tklInt','passPct'];
 
 /* ======================= ΑΓΟΡΑ (Market Overview) ======================= */
-const MK = { q:'', lg:'', team:'', role:'', ageMin:16, ageMax:40, contract:'', maxVal:'', minMin:null, sort:'_score', dir:-1 };
+const MK = { q:'', lg:'', team:'', role:'', ageMin:16, ageMax:40, contract:'', maxVal:'', minMin:null, sort:'_score', dir:-1, scout:'' };
 function mkFilter(){
-  const mm = MK.minMin ?? S.settings.minMin, q = normName(MK.q);
+  const mm = MK.scout ? 0 : (MK.minMin ?? S.settings.minMin), q = normName(MK.q);
   return PL.filter(p=>
     (!MK.lg || p.league===MK.lg) && (!MK.team || p.team===MK.team) && (!MK.role || p._role===MK.role) &&
     p.age>=MK.ageMin && p.age<=MK.ageMax && p.min>=mm &&
     (!MK.contract || (p.contract && p.contract<=+MK.contract)) && (!MK.maxVal || (p.value||0)<=+MK.maxVal) &&
-    (!q || normName(p.name).includes(q) || normName(p.team).includes(q)));
+    (!q || normName(p.name).includes(q) || normName(p.team).includes(q)) && scoutMatch(p, MK.scout));
 }
 VIEWS.market = function(){
   const mm = MK.minMin ?? S.settings.minMin;
@@ -28,15 +28,16 @@ VIEWS.market = function(){
     <label class="f">Ηλικία έως<input type="number" id="fA2" value="${MK.ageMax}" min="15" max="45"></label>
     <label class="f">Μέγ. αξία (χιλ.€)<input type="number" id="fVal" value="${MK.maxVal}" step="50" placeholder="χωρίς όριο"></label>
     <label class="f">Ελάχ. λεπτά<input type="number" id="fMin" value="${mm}" step="90"></label>
+    <label class="f">📝 Scouting<select id="fSc">${scoutFilterOpts(MK.scout)}</select></label>
     <div class="row" style="align-items:flex-end"><button class="btn" id="fU23">Κάτω των 23</button><button class="btn" id="fExp">Λήγουν 2027</button></div>
   </div></div>
   <div class="card" style="margin-top:14px"><h3 id="mkH">Παίκτες</h3><div id="mkT"></div></div>`;
   const bind = (id, k, f=v=>v)=>on(id, 'input', e=>{ MK[k]=f(e.target.value); drawMarket(); });
   bind('#fQ','q'); bind('#fA1','ageMin',v=>+v||0); bind('#fA2','ageMax',v=>+v||99); bind('#fVal','maxVal'); bind('#fMin','minMin',v=>+v||0);
-  ['#fLg:lg','#fTeam:team','#fRole:role','#fCon:contract'].forEach(s=>{ const [id,k]=s.split(':'); on(id,'change',e=>{ MK[k]=e.target.value; if(k==='role') MK.sort='_score'; drawMarket(); }); });
+  ['#fLg:lg','#fTeam:team','#fRole:role','#fCon:contract','#fSc:scout'].forEach(s=>{ const [id,k]=s.split(':'); on(id,'change',e=>{ MK[k]=e.target.value; if(k==='role') MK.sort='_score'; drawMarket(); }); });
   on('#fU23','click',()=>{ MK.ageMax=22; $('#fA2').value=22; drawMarket(); });
   on('#fExp','click',()=>{ MK.contract='2027'; $('#fCon').value='2027'; drawMarket(); });
-  on('#mkReset','click',()=>{ Object.assign(MK,{ q:'', lg:'', team:'', role:'', ageMin:16, ageMax:40, contract:'', maxVal:'', minMin:null, sort:'_score', dir:-1 }); VIEWS.market(); });
+  on('#mkReset','click',()=>{ Object.assign(MK,{ q:'', lg:'', team:'', role:'', ageMin:16, ageMax:40, contract:'', maxVal:'', minMin:null, sort:'_score', dir:-1, scout:'' }); VIEWS.market(); });
   drawMarket();
 };
 function drawMarket(){
@@ -44,9 +45,9 @@ function drawMarket(){
   const getS = p => MK.sort==='_score' ? p._score : MK.sort==='_vfm' ? (p._vfm||0) : ['name','team','pos'].includes(MK.sort) ? p[MK.sort] : M[MK.sort] ? val(p,MK.sort) : (+p[MK.sort]||0);
   list.sort((a,b)=>{ const x=getS(a), y=getS(b); return (typeof x==='string' ? x.localeCompare(y,'el') : x-y)*MK.dir; });
   $('#mkH').innerHTML = `📋 ${list.length} παίκτες ${MK.role?`· ${esc(ROLES[MK.role].l)}`:''}<span class="sp"></span><span class="small muted">Χρώμα κελιού = εκατοστημόριο στη θέση</span><button class="btn sm" id="mkCsv">⬇ CSV</button>`;
-  const th = (k,l,cls='')=>`<th data-s="${k}" class="${cls}">${l}${MK.sort===k?(MK.dir<0?' ▼':' ▲'):''}</th>`;
+  const th = (k,l,cls='')=>`<th data-s="${k}" class="${cls}"${mtip(k)}>${l}${MK.sort===k?(MK.dir<0?' ▼':' ▲'):''}</th>`;
   const rows = list.slice(0,400).map(p=>`<tr class="${p.team===S.settings.myTeam?'me':''}">
-    <td>${star(p)}</td><td class="l click" data-pid="${p.id}">${esc(p.name)}</td><td class="l small">${esc(p.team)}</td><td>${POS_L[p.pos]}</td><td>${p.age}</td><td>${p.min}</td>
+    <td>${star(p)}</td><td class="l click" data-pid="${p.id}">${esc(p.name)} ${scoutBadge(p)}</td><td class="l small">${esc(p.team)}</td><td>${POS_L[p.pos]}</td><td>${p.age}</td><td>${p.min}</td>
     <td>${p.contract||'–'}</td><td>${p.value?Math.round(p.value):'–'}</td><td>${p.wage?Math.round(p.wage):'–'}</td>
     <td><b style="color:${scoreCol(p._score)}">${Math.round(p._score)}</b></td><td>${vfmTag(p)}</td>
     ${cols.map(k=>`<td><span class="hc" style="${heatBg(pct(p,k))}">${fv(p,k)}</span></td>`).join('')}</tr>`).join('');
@@ -117,7 +118,7 @@ VIEWS.profile = function(arg){
     <span style="flex:1"></span>${star(p)}<button class="btn" onclick="svgToPng(document.getElementById('pRad'),'radar_${esc(p.name).replace(/\s/g,'_')}')">🖼 Radar PNG</button><button class="btn" data-go="portfolio" data-arg="player">📣 Post</button><button class="btn" onclick="window.print()">🖨</button></div>
   <div class="grid g3">
     <div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div>
-      <div style="font-size:21px;font-weight:800">${esc(p.name)}</div><div class="muted">${esc(p.team)} · ${esc(lgAvgName)}</div></div>
+      <div style="font-size:21px;font-weight:800">${esc(p.name)} ${scoutBadge(p)}</div><div class="muted">${esc(p.team)} · ${esc(lgAvgName)}</div></div>
       <div style="text-align:center"><div class="score" style="color:${scoreCol(p._score)}">${Math.round(p._score)}</div><div class="small muted">score ρόλου</div></div></div>
       <div class="row" style="margin:10px 0"><span class="tag r">${POS_FULL[p.pos]}</span><span class="tag">${p.age} ετών</span>${p.foot?`<span class="tag">Πόδι ${p.foot}</span>`:''}<span class="tag">${p.min}′ (${(p.min/90).toFixed(1)} × 90′)</span></div>
       <table class="t"><tr><td class="l">Εκτιμώμενη αξία</td><td><b>${fmtK(p.value)}</b></td></tr>
@@ -129,11 +130,12 @@ VIEWS.profile = function(arg){
         ${amort?`<tr><td class="l">Απόσβεση μεταγραφής</td><td>${fmtK(amort)}/έτος (${fmtK(p.fee)} / ${p.feeYears} έτη)</td></tr>`:''}
         <tr><td class="l">Γκολ / Ασίστ</td><td>${p.goals||0} / ${p.ast||0} <span class="small muted">(npxG ${fmt(p.npxg,1)} · xA ${fmt(p.xa,1)})</span></td></tr></table>
       ${!qualified(p)?`<div class="find weak" style="margin-top:10px"><span class="ic">⚠</span><div><b>Μικρό δείγμα</b><span class="small muted">Κάτω από ${S.settings.minMin}′ — τα per-90 είναι αναξιόπιστα.</span></div></div>`:''}</div>
+    ${notesCardHTML(p)}
     <div class="card"><h3>🕸️ Radar εκατοστημορίων — ${esc(R.l)}</h3>${radarSVG(axes, series, { id:'pRad' })}
       <div class="legend">${series.map(s=>`<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('')}<span>0 = κέντρο · 100 = καλύτερος</span></div></div>
     <div class="card"><h3>📏 Μετρικές vs Μ.Ο. ${esc(leagueShort(p.league))}</h3><table class="t"><tr><th class="l">Μετρική</th><th>Παίκτης</th>${c?`<th>${esc(c.name.split(' ').slice(-1)[0])}</th>`:''}<th>Μ.Ο.</th><th>Εκατ.</th></tr>
       ${R.m.concat(['npxg','xa','progP','progC','pressures','recov'].filter(k=>!R.m.includes(k)&&p._role!=='GK')).map(k=>{ const pc=pct(p,k), av=roleAvg(p._role,k,p.league);
-        return `<tr><td class="l">${esc(M[k].l)}</td><td><b>${fv(p,k)}</b></td>${c?`<td>${fv(c,k)}</td>`:''}<td class="muted">${M[k].t==='pct'||M[k].t==='raw'?av.toFixed(1):av.toFixed(2)}</td><td><div class="row" style="gap:6px;flex-wrap:nowrap"><div class="pb" style="width:70px"><i style="width:${pc}%"></i></div><span class="small">${Math.round(pc)}</span></div></td></tr>`; }).join('')}</table></div>
+        return `<tr><td class="l"${mtip(k)}>${esc(M[k].l)} <span class="muted small">ⓘ</span></td><td><b>${fv(p,k)}</b></td>${c?`<td>${fv(c,k)}</td>`:''}<td class="muted">${M[k].t==='pct'||M[k].t==='raw'?av.toFixed(1):av.toFixed(2)}</td><td><div class="row" style="gap:6px;flex-wrap:nowrap"><div class="pb" style="width:70px"><i style="width:${pc}%"></i></div><span class="small">${Math.round(pc)}</span></div></td></tr>`; }).join('')}</table></div>
     <div class="card"><h3>🔥 Heatmap (επίδειξη)</h3>${p.imported?'<div class="empty">Χωρίς δεδομένα θέσης για εισαγόμενους παίκτες.</div>':heatSVG(genTouches(p))}</div>
     <div class="card"><h3>🧩 Ταίριασμα σε ρόλους</h3>${bestRoles(p,7).map(b=>`<div class="bars"><div class="b"><span>${esc(ARCH[b.a].l)} <span class="muted small">${esc(b.r)}</span></span><div class="track"><div class="fill" style="width:${b.f}%;background:${fitCol(b.f)}"></div></div><b style="text-align:right">${Math.round(b.f)}%</b></div></div>`).join('')}
       <div class="small muted" style="margin-top:6px">Συστήματα όπου θα ήταν βασικός: ${SYSTEMS.filter(s=>bestXI(s,myTeamPlayers().filter(q=>q.id!==p.id).concat([p])).slots.some(sl=>sl.p&&sl.p.id===p.id)).slice(0,6).map(s=>`<a data-go="fit" data-arg="${s.id}">${esc(s.f)} ${esc(s.c.split(' ').slice(-1)[0])}</a>`).join(' · ')||'—'}</div>
@@ -146,6 +148,7 @@ VIEWS.profile = function(arg){
   on('#pSel','change',e=>{ const v=e.target.value, q=PL.find(q=>`${q.name} — ${q.team}`===v) || PL.find(q=>normName(q.name).includes(normName(v.split(' — ')[0]))); if(q){ PV.cmp=null; go('profile', q.id); } });
   on('#pCmp','change',e=>{ PV.cmp=+e.target.value||null; VIEWS.profile(); });
   $$('[data-cmp]').forEach(b=>b.onclick=()=>{ PV.cmp=+b.dataset.cmp; VIEWS.profile(); });
+  bindNotes(p);
 };
 
 /* ======================= ΡΟΣΤΕΡ & ΜΠΑΤΖΕΤ ======================= */
